@@ -1,9 +1,10 @@
-use std::{sync::Arc, time::Instant};
+use std::{sync::Arc, time::Instant, fmt::format};
 
 use colored::*;
 use drillx::{
+    difficulty,
     equix::{self},
-    Hash, Solution, difficulty,
+    Hash, Solution,
 };
 use ore_api::{
     consts::{BUS_ADDRESSES, BUS_COUNT, EPOCH_DURATION},
@@ -44,33 +45,39 @@ impl Miner {
 
             // Run drillx
             let config = get_config(&self.rpc_client).await;
-            let solution = Self::find_hash_par(
+            let option_solution = Self::find_hash_par(
                 proof,
                 cutoff_time,
                 args.threads,
-                1, //minimum difficulty to mine
+                config.min_difficulty as u32,
             )
             .await;
 
-            
-
-            
-            // Submit most difficult hash
-            let mut compute_budget = 500_000;
-            let mut ixs = vec![ore_api::instruction::auth(proof_pubkey(signer.pubkey()))];
-            if self.should_reset(config).await && rand::thread_rng().gen_range(0..100).eq(&0) {
-                compute_budget += 100_000;
-                ixs.push(ore_api::instruction::reset(signer.pubkey()));
+            match option_solution {
+                Some(solution) => {
+                    // Submit most difficult hash
+                    let mut compute_budget = 500_000;
+                    let mut ixs = vec![ore_api::instruction::auth(proof_pubkey(signer.pubkey()))];
+                    if self.should_reset(config).await
+                        && rand::thread_rng().gen_range(0..100).eq(&0)
+                    {
+                        compute_budget += 100_000;
+                        ixs.push(ore_api::instruction::reset(signer.pubkey()));
+                    }
+                    ixs.push(ore_api::instruction::mine(
+                        signer.pubkey(),
+                        signer.pubkey(),
+                        find_bus(),
+                        solution,
+                    ));
+                    self.send_and_confirm(&ixs, ComputeBudget::Fixed(compute_budget), false)
+                        .await
+                        .ok();
+                }
+                None => {
+                    
+                }
             }
-            ixs.push(ore_api::instruction::mine(
-                signer.pubkey(),
-                signer.pubkey(),
-                find_bus(),
-                solution,
-            ));
-            self.send_and_confirm(&ixs, ComputeBudget::Fixed(compute_budget), false)
-                .await
-                .ok();
         }
     }
 
@@ -79,7 +86,7 @@ impl Miner {
         cutoff_time: u64,
         threads: u64,
         min_difficulty: u32,
-    ) -> Solution {
+    ) -> Option<Solution> {
         // Dispatch job to each thread
         let progress_bar = Arc::new(spinner::new_progress_bar());
         progress_bar.set_message("Mining...");
@@ -109,7 +116,6 @@ impl Miner {
                                     best_hash = hx;
                                 }
                             }
-                            println!("hej {}", best_difficulty);
 
                             // Exit if time has elapsed
                             if nonce % 100 == 0 {
@@ -128,9 +134,6 @@ impl Miner {
 
                             // Increment nonce
                             nonce += 1;
-                        }
-                        if best_difficulty < min_difficulty {
-                            println!("bad solution")
                         }
 
                         // Return the best nonce
@@ -154,6 +157,11 @@ impl Miner {
             }
         }
 
+        if best_difficulty < 17 {
+            progress_bar.finish_with_message(format!("Best solution found: {}, retrying", best_difficulty));
+            return None;
+        }
+
         // Update log
         progress_bar.finish_with_message(format!(
             "Best hash: {} (difficulty: {})",
@@ -161,7 +169,7 @@ impl Miner {
             best_difficulty
         ));
 
-        Solution::new(best_hash.d, best_nonce.to_le_bytes())
+        Some(Solution::new(best_hash.d, best_nonce.to_le_bytes()))
     }
 
     pub fn check_num_cores(&self, threads: u64) {

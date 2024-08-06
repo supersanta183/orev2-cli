@@ -15,7 +15,7 @@ MAINNET_RPI = os.getenv(mainnet)
 print(RPI)
 
 command = [
-    "ore",
+    "cargo", "run", "--release",
     "mine",
     "--rpc", MAINNET_RPI,
     "--rpc2", RPI,

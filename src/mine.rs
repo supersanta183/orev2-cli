@@ -74,8 +74,10 @@ impl Miner {
                 priority_fee = constants::LOW_PRIORITY_FEE;
             } else if best_difficulty < 20 {
                 priority_fee = constants::MEDIUM_PRIORITY_FEE;
-            } else {
+            } else if best_difficulty < 24 {
                 priority_fee = constants::HIGH_PRIORITY_FEE;
+            } else {
+                priority_fee = constants::ULTRA_PRIORITY_FEE;
             }
 
             println!("pri fee {}", priority_fee);

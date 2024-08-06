@@ -66,6 +66,7 @@ impl Miner {
                 solution,
             ));
 
+
             //dynamic priorityfee
             let mut priority_fee;
 

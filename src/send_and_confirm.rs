@@ -72,7 +72,7 @@ impl Miner {
             }
         }
         final_ixs.push(ComputeBudgetInstruction::set_compute_unit_price(
-            self.priority_fee,
+            priority_fee,
         ));
         final_ixs.extend_from_slice(ixs);
 

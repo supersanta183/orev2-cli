@@ -52,7 +52,7 @@ impl Miner {
                 proof,
                 cutoff_time,
                 args.threads,
-                constants::TARGET_DIFFICULTY,
+                config.min_difficulty as u32,
             )
             .await;
 
@@ -83,8 +83,6 @@ impl Miner {
             } else {
                 priority_fee = constants::ULTRA_PRIORITY_FEE;
             }
-
-            //save_difficulty_to_file("data.txt", best_difficulty).unwrap();
 
             println!("pri fee {}", priority_fee);
 
@@ -133,7 +131,7 @@ impl Miner {
                             // Exit if time has elapsed
                             if nonce % 100 == 0 {
                                 if timer.elapsed().as_secs().ge(&cutoff_time) {
-                                    if best_difficulty.ge(&min_difficulty) {
+                                    if best_difficulty.gt(&min_difficulty) {
                                         // Mine until min difficulty has been met
                                         break;
                                     }

@@ -1,10 +1,9 @@
-use std::{sync::Arc, time::Instant, fmt::format};
+use std::{sync::Arc, time::Instant};
 
 use colored::*;
 use drillx::{
-    difficulty,
     equix::{self},
-    Hash, Solution,
+    Hash, Solution, difficulty,
 };
 use ore_api::{
     consts::{BUS_ADDRESSES, BUS_COUNT, EPOCH_DURATION},
@@ -45,7 +44,7 @@ impl Miner {
 
             // Run drillx
             let config = get_config(&self.rpc_client).await;
-            let option_solution = Self::find_hash_par(
+            let solution = Self::find_hash_par(
                 proof,
                 cutoff_time,
                 args.threads,
@@ -53,31 +52,25 @@ impl Miner {
             )
             .await;
 
-            match option_solution {
-                Some(solution) => {
-                    // Submit most difficult hash
-                    let mut compute_budget = 500_000;
-                    let mut ixs = vec![ore_api::instruction::auth(proof_pubkey(signer.pubkey()))];
-                    if self.should_reset(config).await
-                        && rand::thread_rng().gen_range(0..100).eq(&0)
-                    {
-                        compute_budget += 100_000;
-                        ixs.push(ore_api::instruction::reset(signer.pubkey()));
-                    }
-                    ixs.push(ore_api::instruction::mine(
-                        signer.pubkey(),
-                        signer.pubkey(),
-                        find_bus(),
-                        solution,
-                    ));
-                    self.send_and_confirm(&ixs, ComputeBudget::Fixed(compute_budget), false)
-                        .await
-                        .ok();
-                }
-                None => {
-                    
-                }
+            
+
+            
+            // Submit most difficult hash
+            let mut compute_budget = 500_000;
+            let mut ixs = vec![ore_api::instruction::auth(proof_pubkey(signer.pubkey()))];
+            if self.should_reset(config).await && rand::thread_rng().gen_range(0..100).eq(&0) {
+                compute_budget += 100_000;
+                ixs.push(ore_api::instruction::reset(signer.pubkey()));
             }
+            ixs.push(ore_api::instruction::mine(
+                signer.pubkey(),
+                signer.pubkey(),
+                find_bus(),
+                solution,
+            ));
+            self.send_and_confirm(&ixs, ComputeBudget::Fixed(compute_budget), false)
+                .await
+                .ok();
         }
     }
 
@@ -86,7 +79,7 @@ impl Miner {
         cutoff_time: u64,
         threads: u64,
         min_difficulty: u32,
-    ) -> Option<Solution> {
+    ) -> Solution {
         // Dispatch job to each thread
         let progress_bar = Arc::new(spinner::new_progress_bar());
         progress_bar.set_message("Mining...");
@@ -157,11 +150,6 @@ impl Miner {
             }
         }
 
-        if best_difficulty < 17 {
-            progress_bar.finish_with_message(format!("Best solution found: {}, retrying", best_difficulty));
-            return None;
-        }
-
         // Update log
         progress_bar.finish_with_message(format!(
             "Best hash: {} (difficulty: {})",
@@ -169,7 +157,7 @@ impl Miner {
             best_difficulty
         ));
 
-        Some(Solution::new(best_hash.d, best_nonce.to_le_bytes()))
+        Solution::new(best_hash.d, best_nonce.to_le_bytes())
     }
 
     pub fn check_num_cores(&self, threads: u64) {

@@ -45,6 +45,7 @@ impl Miner {
         let progress_bar = spinner::new_progress_bar();
         let signer = self.signer();
         let client = self.rpc_client.clone();
+        let client2 = self.rpc2_client.clone();
 
         // Return error, if balance is zero
         if let Ok(balance) = client.get_balance(&signer.pubkey()).await {
@@ -95,7 +96,7 @@ impl Miner {
         let mut attempts = 0;
         loop {
             progress_bar.set_message(format!("Submitting transaction... (attempt {})", attempts));
-            match client.send_transaction_with_config(&tx, send_cfg).await {
+            match client2.send_transaction_with_config(&tx, send_cfg).await {
                 Ok(sig) => {
                     // Skip confirmation
                     if skip_confirm {

@@ -3,4 +3,4 @@ pub const MEDIUM_PRIORITY_FEE: u64 = 50000;
 pub const HIGH_PRIORITY_FEE: u64 = 200000;
 pub const ULTRA_PRIORITY_FEE: u64 = 700000;
 
-pub const TARGET_DIFFICULTY: u32 = 18;
+pub const TARGET_DIFFICULTY: u32 = 15;

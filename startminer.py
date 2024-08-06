@@ -3,6 +3,7 @@ import sys
 from dotenv import load_dotenv
 import os
 
+mainnet = "MAINNET"
 key = "ALCHEMY"
 i = sys.argv[1]
 threads = sys.argv[2]
@@ -10,12 +11,14 @@ threads = sys.argv[2]
 load_dotenv()
 
 RPI = os.getenv(key)
+MAINNET_RPI = os.getenv(mainnet)
 print(RPI)
 
 command = [
     "ore",
     "mine",
-    "--rpc", RPI,
+    "--rpc", MAINNET_RPI,
+    "--rpc2", RPI,
     #/root/orev2_setup/ids
     "--keypair", f"/root/orev2_setup/ids/id{i}.json",
     "--threads", threads,

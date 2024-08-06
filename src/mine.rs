@@ -18,7 +18,7 @@ use crate::{
     args::MineArgs,
     send_and_confirm::ComputeBudget,
     utils::{amount_u64_to_string, get_clock, get_config, get_proof_with_authority, proof_pubkey},
-    Miner,
+    Miner, constants,
 };
 
 impl Miner {
@@ -52,9 +52,6 @@ impl Miner {
             )
             .await;
 
-            
-
-            
             // Submit most difficult hash
             let mut compute_budget = 500_000;
             let mut ixs = vec![ore_api::instruction::auth(proof_pubkey(signer.pubkey()))];
@@ -68,7 +65,21 @@ impl Miner {
                 find_bus(),
                 solution,
             ));
-            self.send_and_confirm(&ixs, ComputeBudget::Fixed(compute_budget), false)
+
+            //dynamic priorityfee
+            let mut priority_fee;
+
+            if best_difficulty < 17 {
+                priority_fee = constants::LOW_PRIORITY_FEE;
+            } else if best_difficulty < 20 {
+                priority_fee = constants::MEDIUM_PRIORITY_FEE;
+            } else {
+                priority_fee = constants::HIGH_PRIORITY_FEE;
+            }
+
+            println!("pri fee {}", priority_fee);
+
+            self.send_and_confirm(&ixs, ComputeBudget::Fixed(compute_budget), false, priority_fee)
                 .await
                 .ok();
         }

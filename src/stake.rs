@@ -5,7 +5,7 @@ use solana_sdk::signature::Signer;
 
 use crate::{
     args::StakeArgs, cu_limits::CU_LIMIT_CLAIM, send_and_confirm::ComputeBudget,
-    utils::amount_f64_to_u64, Miner,
+    utils::amount_f64_to_u64, Miner, constants,
 };
 
 impl Miner {
@@ -36,7 +36,7 @@ impl Miner {
 
         // Send tx
         let ix = ore_api::instruction::stake(signer.pubkey(), sender, amount);
-        self.send_and_confirm(&[ix], ComputeBudget::Fixed(CU_LIMIT_CLAIM), false)
+        self.send_and_confirm(&[ix], ComputeBudget::Fixed(CU_LIMIT_CLAIM), false, constants::LOW_PRIORITY_FEE)
             .await
             .ok();
     }

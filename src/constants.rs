@@ -1,0 +1,3 @@
+pub const LOW_PRIORITY_FEE: u64 = 2000;
+pub const MEDIUM_PRIORITY_FEE: u64 = 200000;
+pub const HIGH_PRIORITY_FEE: u64 = 500000;

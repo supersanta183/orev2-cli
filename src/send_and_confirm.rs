@@ -41,6 +41,7 @@ impl Miner {
         ixs: &[Instruction],
         compute_budget: ComputeBudget,
         skip_confirm: bool,
+        priority_fee: u64,
     ) -> ClientResult<Signature> {
         let progress_bar = spinner::new_progress_bar();
         let signer = self.signer();

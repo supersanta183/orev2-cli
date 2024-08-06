@@ -11,7 +11,7 @@ use crate::{
     cu_limits::CU_LIMIT_CLAIM,
     send_and_confirm::ComputeBudget,
     utils::{amount_f64_to_u64, ask_confirm, get_proof_with_authority},
-    Miner,
+    Miner, constants,
 };
 
 impl Miner {
@@ -72,7 +72,7 @@ impl Miner {
 
         // Send and confirm
         ixs.push(ore_api::instruction::claim(pubkey, beneficiary, amount));
-        self.send_and_confirm(&ixs, ComputeBudget::Fixed(CU_LIMIT_CLAIM), false)
+        self.send_and_confirm(&ixs, ComputeBudget::Fixed(CU_LIMIT_CLAIM), false, constants::LOW_PRIORITY_FEE)
             .await
             .ok();
     }
@@ -99,7 +99,7 @@ impl Miner {
             &ore_api::consts::MINT_ADDRESS,
             &spl_token::id(),
         );
-        self.send_and_confirm(&[ix], ComputeBudget::Dynamic, false)
+        self.send_and_confirm(&[ix], ComputeBudget::Dynamic, false, constants::LOW_PRIORITY_FEE)
             .await
             .ok();
 

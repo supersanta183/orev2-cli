@@ -6,7 +6,7 @@ use crate::{
     args::ClaimArgs,
     send_and_confirm::ComputeBudget,
     utils::{ask_confirm, get_proof_with_authority},
-    Miner,
+    Miner, constants,
 };
 
 impl Miner {
@@ -37,7 +37,7 @@ impl Miner {
 
         // Submit close transaction
         let ix = ore_api::instruction::close(signer.pubkey());
-        self.send_and_confirm(&[ix], ComputeBudget::Dynamic, false)
+        self.send_and_confirm(&[ix], ComputeBudget::Dynamic, false, constants::LOW_PRIORITY_FEE)
             .await
             .ok();
     }

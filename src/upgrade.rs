@@ -6,7 +6,7 @@ use crate::{
     cu_limits::CU_LIMIT_UPGRADE,
     send_and_confirm::ComputeBudget,
     utils::{amount_f64_to_u64_v1, ask_confirm},
-    Miner, UpgradeArgs,
+    Miner, UpgradeArgs, constants
 };
 
 impl Miner {
@@ -40,7 +40,7 @@ impl Miner {
 
         let ix = ore_api::instruction::upgrade(signer.pubkey(), beneficiary, sender, amount);
         match self
-            .send_and_confirm(&[ix], ComputeBudget::Fixed(CU_LIMIT_UPGRADE), false)
+            .send_and_confirm(&[ix], ComputeBudget::Fixed(CU_LIMIT_UPGRADE), false, constants::LOW_PRIORITY_FEE)
             .await
         {
             Ok(_sig) => {}
@@ -105,7 +105,7 @@ impl Miner {
                 &ore_api::consts::MINT_ADDRESS,
                 &spl_token::id(),
             );
-            self.send_and_confirm(&[ix], ComputeBudget::Dynamic, false)
+            self.send_and_confirm(&[ix], ComputeBudget::Dynamic, false, constants::LOW_PRIORITY_FEE)
                 .await
                 .ok();
         }

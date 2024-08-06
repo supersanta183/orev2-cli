@@ -48,10 +48,13 @@ impl Miner {
                 proof,
                 cutoff_time,
                 args.threads,
-                config.min_difficulty as u32,
+                17, //minimum difficulty to mine
             )
             .await;
 
+            
+
+            
             // Submit most difficult hash
             let mut compute_budget = 500_000;
             let mut ixs = vec![ore_api::instruction::auth(proof_pubkey(signer.pubkey()))];
@@ -77,6 +80,7 @@ impl Miner {
         threads: u64,
         min_difficulty: u32,
     ) -> Solution {
+        println!("{}", min_difficulty);
         // Dispatch job to each thread
         let progress_bar = Arc::new(spinner::new_progress_bar());
         progress_bar.set_message("Mining...");
@@ -124,6 +128,9 @@ impl Miner {
 
                             // Increment nonce
                             nonce += 1;
+                        }
+                        if best_difficulty < min_difficulty {
+                            println!("bad solution")
                         }
 
                         // Return the best nonce

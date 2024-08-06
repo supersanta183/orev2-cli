@@ -55,8 +55,6 @@ impl Miner {
             
 
             
-
-            
             // Submit most difficult hash
             let mut compute_budget = 500_000;
             let mut ixs = vec![ore_api::instruction::auth(proof_pubkey(signer.pubkey()))];

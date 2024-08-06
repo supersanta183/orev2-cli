@@ -37,10 +37,12 @@ impl Miner {
         // Start mining loop
         loop {
             // Fetch proof
+            let config = get_config(&self.rpc_client).await;
             let proof = get_proof_with_authority(&self.rpc_client, signer.pubkey()).await;
             println!(
-                "\nStake balance: {} ORE",
-                amount_u64_to_string(proof.balance)
+                "\nStake: {} ORE\n Multiplier: {:12}x",
+                amount_u64_to_string(proof.balance),
+                calculate_multiplier(proof.balance, config.top_balance)
             );
 
             // Calc cutoff time

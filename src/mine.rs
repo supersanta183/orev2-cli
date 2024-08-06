@@ -1,4 +1,8 @@
 use std::{sync::Arc, time::Instant};
+use std::fs::File;
+use std::io::{self, Write};
+use std::io::{BufRead, BufReader};
+use std::path::Path;
 
 use colored::*;
 use drillx::{
@@ -48,7 +52,7 @@ impl Miner {
                 proof,
                 cutoff_time,
                 args.threads,
-                config.min_difficulty as u32,
+                constants::TARGET_DIFFICULTY,
             )
             .await;
 
@@ -79,6 +83,8 @@ impl Miner {
             } else {
                 priority_fee = constants::ULTRA_PRIORITY_FEE;
             }
+
+            //save_difficulty_to_file("data.txt", best_difficulty).unwrap();
 
             println!("pri fee {}", priority_fee);
 
@@ -127,7 +133,7 @@ impl Miner {
                             // Exit if time has elapsed
                             if nonce % 100 == 0 {
                                 if timer.elapsed().as_secs().ge(&cutoff_time) {
-                                    if best_difficulty.gt(&min_difficulty) {
+                                    if best_difficulty.ge(&min_difficulty) {
                                         // Mine until min difficulty has been met
                                         break;
                                     }
@@ -211,4 +217,8 @@ impl Miner {
 fn find_bus() -> Pubkey {
     let i = rand::thread_rng().gen_range(0..BUS_COUNT);
     BUS_ADDRESSES[i]
+}
+
+fn calculate_multiplier(balance: u64, top_balance: u64) -> f64 {
+    1.0 + (balance as f64 / top_balance as f64).min(1.0f64)
 }

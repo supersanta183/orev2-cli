@@ -29,7 +29,6 @@ use solana_sdk::{
 
 struct Miner {
     pub keypair_filepath: Option<String>,
-    pub priority_fee: u64,
     pub rpc_client: Arc<RpcClient>,
     pub rpc2_client: Arc<RpcClient>,
 }
@@ -200,7 +199,6 @@ impl Miner {
             rpc_client,
             rpc2_client,
             keypair_filepath,
-            priority_fee,
         }
     }
 

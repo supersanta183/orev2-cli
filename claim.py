@@ -15,7 +15,7 @@ print(MAINNET)
 print(RPI)
 
 command = [
-    "cargo", "run", "--release"
+    "cargo", "run", "--release",
     "claim",
     "--rpc", MAINNET,
     "--rpc2", RPI,

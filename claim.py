@@ -21,7 +21,7 @@ command = [
     "--rpc2", RPI,
     #/root/orev2_setup/ids
     "--keypair", f"/root/orev2_setup/ids/id{i}.json",
-    "--priority-fee", str(200000),
+    "--priority-fee", str(500000),
 ]
 
 subprocess.run(command)

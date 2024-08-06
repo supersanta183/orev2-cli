@@ -3,7 +3,7 @@ use std::{sync::Arc, time::Instant};
 use colored::*;
 use drillx::{
     equix::{self},
-    Hash, Solution,
+    Hash, Solution, difficulty,
 };
 use ore_api::{
     consts::{BUS_ADDRESSES, BUS_COUNT, EPOCH_DURATION},

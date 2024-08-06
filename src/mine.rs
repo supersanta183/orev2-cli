@@ -80,7 +80,6 @@ impl Miner {
         threads: u64,
         min_difficulty: u32,
     ) -> Solution {
-        println!("{}", min_difficulty);
         // Dispatch job to each thread
         let progress_bar = Arc::new(spinner::new_progress_bar());
         progress_bar.set_message("Mining...");
@@ -110,6 +109,7 @@ impl Miner {
                                     best_hash = hx;
                                 }
                             }
+                            println!("hej {}", best_difficulty);
 
                             // Exit if time has elapsed
                             if nonce % 100 == 0 {

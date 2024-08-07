@@ -83,7 +83,7 @@ impl Miner {
                 priority_fee = constants::ULTRA_PRIORITY_FEE;
             } */
 
-           priority_fee = 750000;
+           priority_fee = 500000;
 
             println!("pri fee {}", priority_fee);
 
@@ -121,7 +121,7 @@ impl Miner {
                         let mut best_hash = Hash::default();
                         loop {
                             // Create hash
-                            if let Ok(hx) = hash_with_memory /*drillx::hash_with_memory*/(
+                            if let Ok(hx) = /*hash_with_memory*/ drillx::hash_with_memory(
                                 &mut memory,
                                 &proof.challenge,
                                 &nonce.to_le_bytes(),

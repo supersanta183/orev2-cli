@@ -23,6 +23,7 @@ command = [
     "--keypair", f"/root/orev2_setup/ids/id{i}.json",
     "--threads", threads,
     "--priority-fee", str(2000),
+    "--buffer-time", str(2),
 ]
 
 subprocess.run(command)

@@ -13,6 +13,8 @@ use rand::Rng;
 use solana_program::pubkey::Pubkey;
 use solana_rpc_client::spinner;
 use solana_sdk::signer::Signer;
+use rayon::prelude::*;
+use solana_program::keccak;
 
 use crate::{
     args::MineArgs,
@@ -113,7 +115,7 @@ impl Miner {
                         let mut best_hash = Hash::default();
                         loop {
                             // Create hash
-                            if let Ok(hx) = drillx::hash_with_memory(
+                            if let Ok(hx) = hash_with_memory /* drillx::hash_with_memory */(
                                 &mut memory,
                                 &proof.challenge,
                                 &nonce.to_le_bytes(),
@@ -218,3 +220,59 @@ fn find_bus() -> Pubkey {
 fn calculate_multiplier(balance: u64, top_balance: u64) -> f64 {
     1.0 + (balance as f64 / top_balance as f64).min(1.0f64)
 }
+
+#[inline(always)]
+fn sorted(mut digest: [u8; 16]) -> [u8; 16] {
+    // Replace with an actual SIMD sorting function or highly optimized sort.
+    digest.sort_unstable();
+    digest
+}
+
+#[inline(always)]
+fn hashv(digest: &[u8; 16], nonce: &[u8; 8]) -> [u8; 32] {
+    let sorted_digest = sorted(*digest);
+    keccak::hashv(&[sorted_digest.as_slice(), nonce]).to_bytes()
+}
+
+#[inline(always)]
+pub fn seed(challenge: &[u8; 32], nonce: &[u8; 8]) -> [u8; 40] {
+    let mut result = [0; 40];
+    result[..32].copy_from_slice(challenge);
+    result[32..].copy_from_slice(nonce);
+    result
+}
+
+#[inline(always)]
+pub fn hash_with_memory(
+    memory: &mut equix::SolverMemory,
+    challenge: &[u8; 32],
+    nonce: &[u8; 8],
+) -> Result<Hash, drillx::DrillxError> {
+    let digest = digest_with_memory(memory, challenge, nonce)?;
+    Ok(Hash {
+        d: digest,
+        h: hashv(&digest, nonce),
+    })
+}
+
+#[inline(always)]
+fn digest_with_memory(
+    memory: &mut equix::SolverMemory,
+    challenge: &[u8; 32],
+    nonce: &[u8; 8],
+) -> Result<[u8; 16], drillx::DrillxError> {
+    let seed = seed(challenge, nonce);
+    let equix = equix::EquiXBuilder::new()
+        .runtime(equix::RuntimeOption::TryCompile)
+        .build(&seed)
+        .map_err(|_| drillx::DrillxError::BadEquix)?;
+    let solutions = equix.solve_with_memory(memory);
+    if solutions.is_empty() {
+        return Err(drillx::DrillxError::NoSolutions);
+    }
+    let solution = unsafe { solutions.get_unchecked(0) };
+    Ok(solution.to_bytes())
+}
+
+
+

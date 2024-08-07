@@ -109,6 +109,7 @@ impl Miner {
         let best_nonce = Arc::new(AtomicU64::new(0));
         let best_hash = Arc::new(std::sync::Mutex::new(Hash::default()));
         let nonce_counter = Arc::new(AtomicU64::new(0));
+        let hash_counter = Arc::new(AtomicU64::new(0)); // New hash counter
     
         rayon::scope(|s| {
             for _ in 0..threads {
@@ -118,6 +119,7 @@ impl Miner {
                 let best_nonce = Arc::clone(&best_nonce);
                 let best_hash = Arc::clone(&best_hash);
                 let nonce_counter = Arc::clone(&nonce_counter);
+                let hash_counter = Arc::clone(&hash_counter); // Clone hash counter
     
                 s.spawn(move |_| {
                     let timer = Instant::now();
@@ -132,6 +134,7 @@ impl Miner {
                             &proof.challenge,
                             &nonce.to_le_bytes(),
                         ) {
+                            hash_counter.fetch_add(1, Ordering::Relaxed); // Increment hash counter
                             let difficulty = hx.difficulty();
                             let current_best_difficulty = best_difficulty.load(Ordering::Relaxed);
     
@@ -168,6 +171,9 @@ impl Miner {
             bs58::encode(best_hash_final.h).into_string(),
             best_difficulty.load(Ordering::Relaxed)
         ));
+    
+        // Print the total number of hashes checked
+        println!("Total hashes checked: {}", hash_counter.load(Ordering::Relaxed));
     
         (
             Solution::new(

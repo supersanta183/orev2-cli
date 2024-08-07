@@ -1,10 +1,13 @@
 use std::{sync::Arc, time::Instant};
+use std::fs::File;
+use std::io::{self, Write};
+use std::io::{BufRead, BufReader};
+use std::path::Path;
 
 use colored::*;
 use drillx::{
-    difficulty,
     equix::{self},
-    Hash, Solution,
+    Hash, Solution, difficulty,
 };
 use ore_api::{
     consts::{BUS_ADDRESSES, BUS_COUNT, EPOCH_DURATION},
@@ -17,10 +20,9 @@ use solana_sdk::signer::Signer;
 
 use crate::{
     args::MineArgs,
-    constants,
     send_and_confirm::ComputeBudget,
     utils::{amount_u64_to_string, get_clock, get_config, get_proof_with_authority, proof_pubkey},
-    Miner,
+    Miner, constants,
 };
 
 impl Miner {
@@ -70,10 +72,11 @@ impl Miner {
                 solution,
             ));
 
+
             //dynamic priorityfee
             let mut priority_fee;
 
-            /* if best_difficulty < 17 {
+            if best_difficulty < 17 {
                 priority_fee = constants::LOW_PRIORITY_FEE;
             } else if best_difficulty < 20 {
                 priority_fee = constants::MEDIUM_PRIORITY_FEE;
@@ -81,20 +84,13 @@ impl Miner {
                 priority_fee = constants::HIGH_PRIORITY_FEE;
             } else {
                 priority_fee = constants::ULTRA_PRIORITY_FEE;
-            } */
-
-           priority_fee = 500000;
+            }
 
             println!("pri fee {}", priority_fee);
 
-            self.send_and_confirm(
-                &ixs,
-                ComputeBudget::Fixed(compute_budget),
-                false,
-                priority_fee,
-            )
-            .await
-            .ok();
+            self.send_and_confirm(&ixs, ComputeBudget::Fixed(compute_budget), false, priority_fee)
+                .await
+                .ok();
         }
     }
 
@@ -103,7 +99,7 @@ impl Miner {
         cutoff_time: u64,
         threads: u64,
         min_difficulty: u32,
-    ) -> (Solution, u32) {
+    ) -> (Solution,u32) {
         // Dispatch job to each thread
         let progress_bar = Arc::new(spinner::new_progress_bar());
         progress_bar.set_message("Mining...");
@@ -121,7 +117,7 @@ impl Miner {
                         let mut best_hash = Hash::default();
                         loop {
                             // Create hash
-                            if let Ok(hx) = /*hash_with_memory*/ drillx::hash_with_memory(
+                            if let Ok(hx) = drillx::hash_with_memory(
                                 &mut memory,
                                 &proof.challenge,
                                 &nonce.to_le_bytes(),
@@ -181,10 +177,7 @@ impl Miner {
             best_difficulty
         ));
 
-        (
-            Solution::new(best_hash.d, best_nonce.to_le_bytes()),
-            best_difficulty,
-        )
+        (Solution::new(best_hash.d, best_nonce.to_le_bytes()), best_difficulty)
     }
 
     pub fn check_num_cores(&self, threads: u64) {
@@ -228,66 +221,4 @@ fn find_bus() -> Pubkey {
 
 fn calculate_multiplier(balance: u64, top_balance: u64) -> f64 {
     1.0 + (balance as f64 / top_balance as f64).min(1.0f64)
-}
-
-/// Sorts the provided digest as a list of u16 values.
-#[inline(always)]
-fn sorted(mut digest: [u8; 16]) -> [u8; 16] {
-    unsafe {
-        let u16_slice: &mut [u16; 8] = core::mem::transmute(&mut digest);
-        u16_slice.sort_unstable();
-        digest
-    }
-}
-
-/// Returns a keccak hash of the provided digest and nonce.
-/// The digest is sorted prior to hashing to prevent malleability.
-/// Delegates the hash to a syscall if compiled for the solana runtime.
-#[inline(always)]
-fn hashv(digest: &[u8; 16], nonce: &[u8; 8]) -> [u8; 32] {
-    solana_program::keccak::hashv(&[sorted(*digest).as_slice(), &nonce.as_slice()]).to_bytes()
-}
-
-/// Concatenates a challenge and a nonce into a single buffer.
-#[inline(always)]
-pub fn seed(challenge: &[u8; 32], nonce: &[u8; 8]) -> [u8; 40] {
-    let mut result = [0; 40];
-    result[00..32].copy_from_slice(challenge);
-    result[32..40].copy_from_slice(nonce);
-    result
-}
-
-/// Generates a new drillx hash from a challenge and nonce using pre-allocated memory.
-#[inline(always)]
-pub fn hash_with_memory(
-    memory: &mut equix::SolverMemory,
-    challenge: &[u8; 32],
-    nonce: &[u8; 8],
-) -> Result<Hash, drillx::DrillxError> {
-    let digest = digest_with_memory(memory, challenge, nonce)?;
-    Ok(Hash {
-        d: digest,
-        h: hashv(&digest, nonce),
-    })
-}
-
-/// Constructs a keccak digest from a challenge and nonce using equix hashes and pre-allocated memory.
-#[inline(always)]
-fn digest_with_memory(
-    memory: &mut equix::SolverMemory,
-    challenge: &[u8; 32],
-    nonce: &[u8; 8],
-) -> Result<[u8; 16], drillx::DrillxError> {
-    let seed = seed(challenge, nonce);
-    let equix = equix::EquiXBuilder::new()
-        .runtime(equix::RuntimeOption::TryCompile)
-        .build(&seed)
-        .map_err(|_| drillx::DrillxError::BadEquix)?;
-    let solutions = equix.solve_with_memory(memory);
-    if solutions.is_empty() {
-        return Err(drillx::DrillxError::NoSolutions);
-    }
-    // SAFETY: The equix solver guarantees that the first solution is always valid
-    let solution = unsafe { solutions.get_unchecked(0) };
-    Ok(solution.to_bytes())
 }

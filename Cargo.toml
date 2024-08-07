@@ -42,7 +42,7 @@ spl-token = { version = "^4", features = ["no-entrypoint"] }
 spl-associated-token-account = { version = "^2.3", features = [
   "no-entrypoint",
 ] }
-tokio = "1.35.1"
+tokio = { version = "1.35.1", features = ["full"] }
 rayon = "1.10.0"
 
 # [patch.crates-io]

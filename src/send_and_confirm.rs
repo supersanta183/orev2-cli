@@ -47,19 +47,20 @@ impl Miner {
         let signer = self.signer();
         let client = self.rpc_client.clone();
         let client2 = self.rpc2_client.clone();
-
-        // Return error, if balance is zero
-        if let Ok(balance) = client.get_balance(&signer.pubkey()).await {
-            if balance <= sol_to_lamports(MIN_SOL_BALANCE) {
-                panic!(
-                    "{} Insufficient balance: {} SOL\nPlease top up with at least {} SOL",
-                    "ERROR".bold().red(),
+    
+        // Return error if balance is zero
+        let balance = client.get_balance(&signer.pubkey()).await?;
+        if balance <= sol_to_lamports(MIN_SOL_BALANCE) {
+            return Err(ClientError {
+                request: None,
+                kind: ClientErrorKind::Custom(format!(
+                    "Insufficient balance: {} SOL\nPlease top up with at least {} SOL",
                     lamports_to_sol(balance),
                     MIN_SOL_BALANCE
-                );
-            }
+                )),
+            });
         }
-
+    
         // Set compute units
         let mut final_ixs = vec![];
         match compute_budget {
@@ -71,11 +72,9 @@ impl Miner {
                 final_ixs.push(ComputeBudgetInstruction::set_compute_unit_limit(cus))
             }
         }
-        final_ixs.push(ComputeBudgetInstruction::set_compute_unit_price(
-            priority_fee,
-        ));
+        final_ixs.push(ComputeBudgetInstruction::set_compute_unit_price(priority_fee));
         final_ixs.extend_from_slice(ixs);
-
+    
         // Build tx
         let send_cfg = RpcSendTransactionConfig {
             skip_preflight: true,
@@ -85,14 +84,17 @@ impl Miner {
             min_context_slot: None,
         };
         let mut tx = Transaction::new_with_payer(&final_ixs, Some(&signer.pubkey()));
-
+    
         // Sign tx
         let (hash, _slot) = client
             .get_latest_blockhash_with_commitment(self.rpc_client.commitment())
             .await
-            .unwrap();
+            .map_err(|err| ClientError {
+                request: None,
+                kind: ClientErrorKind::Custom(err.to_string()),
+            })?;
         tx.sign(&[&signer], hash);
-
+    
         // Submit tx
         let mut attempts = 0;
         loop {
@@ -104,10 +106,10 @@ impl Miner {
                         progress_bar.finish_with_message(format!("Sent: {}", sig));
                         return Ok(sig);
                     }
-
+    
                     // Confirm the tx landed
                     for _ in 0..CONFIRM_RETRIES {
-                        std::thread::sleep(Duration::from_millis(CONFIRM_DELAY));
+                        tokio::time::sleep(Duration::from_millis(CONFIRM_DELAY)).await;
                         match client.get_signature_statuses(&[sig]).await {
                             Ok(signature_statuses) => {
                                 for status in signature_statuses.value {
@@ -140,7 +142,7 @@ impl Miner {
                                     }
                                 }
                             }
-
+    
                             // Handle confirmation errors
                             Err(err) => {
                                 progress_bar.set_message(format!(
@@ -152,7 +154,7 @@ impl Miner {
                         }
                     }
                 }
-
+    
                 // Handle submit errors
                 Err(err) => {
                     progress_bar.set_message(format!(
@@ -162,9 +164,9 @@ impl Miner {
                     ));
                 }
             }
-
+    
             // Retry
-            std::thread::sleep(Duration::from_millis(GATEWAY_DELAY));
+            tokio::time::sleep(Duration::from_millis(GATEWAY_DELAY)).await;
             attempts += 1;
             if attempts > GATEWAY_RETRIES {
                 progress_bar.finish_with_message(format!("{}: Max retries", "ERROR".bold().red()));
@@ -175,6 +177,7 @@ impl Miner {
             }
         }
     }
+    
 
     // TODO
     fn _simulate(&self) {

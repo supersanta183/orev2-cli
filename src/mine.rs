@@ -88,7 +88,7 @@ impl Miner {
 
             println!("pri fee {}", priority_fee);
 
-            self.send_and_confirm(&ixs, ComputeBudget::Fixed(compute_budget), false, priority_fee)
+            self.send_and_confirm(&ixs, ComputeBudget::Fixed(compute_budget), true, priority_fee)
                 .await
                 .ok();
         }

@@ -73,7 +73,7 @@ impl Miner {
             //dynamic priorityfee
             let mut priority_fee;
 
-            if best_difficulty < 17 {
+            /* if best_difficulty < 17 {
                 priority_fee = constants::LOW_PRIORITY_FEE;
             } else if best_difficulty < 20 {
                 priority_fee = constants::MEDIUM_PRIORITY_FEE;
@@ -81,7 +81,9 @@ impl Miner {
                 priority_fee = constants::HIGH_PRIORITY_FEE;
             } else {
                 priority_fee = constants::ULTRA_PRIORITY_FEE;
-            }
+            } */
+
+           priority_fee = 750000;
 
             println!("pri fee {}", priority_fee);
 

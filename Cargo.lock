@@ -2585,6 +2585,7 @@ dependencies = [
  "ore-api",
  "ore-utils",
  "rand 0.8.5",
+ "rayon",
  "solana-cli-config",
  "solana-client",
  "solana-program",

@@ -42,7 +42,6 @@ impl Miner {
                 amount_u64_to_string(proof.balance),
                 calculate_multiplier(proof.balance, config.top_balance)
             );
-            println!("total rewards: {}", lamports_to_sol(proof.total_rewards));
 
             // Calc cutoff time
             let cutoff_time = self.get_cutoff(proof, args.buffer_time).await;

@@ -6,7 +6,7 @@ import os
 mainnet = "MAINNET"
 key = "ALCHEMY"
 i = sys.argv[1]
-threads = sys.argv[2]
+cores = sys.argv[2]
 
 load_dotenv()
 
@@ -21,7 +21,7 @@ command = [
     "--rpc2", RPI,
     #/root/orev2_setup/ids
     "--keypair", f"/root/orev2_setup/ids/id{i}.json",
-    "--threads", threads,
+    "--cores", cores,
     "--priority-fee", str(2000),
     "--buffer-time", str(2),
 ]

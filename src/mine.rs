@@ -99,27 +99,38 @@ impl Miner {
     async fn find_hash_par(
         proof: Proof,
         cutoff_time: u64,
-        threads: u64,
+        cores: u64,
         min_difficulty: u32,
     ) -> (Solution, u32) {
         // Dispatch job to each thread
         let progress_bar = Arc::new(spinner::new_progress_bar());
         progress_bar.set_message("Mining...");
-        let handles: Vec<_> = (0..threads)
+        let core_ids = core_affinity::get_core_ids().unwrap();
+        let handles: Vec<_> = core_ids
+            .into_iter()
             .map(|i| {
                 std::thread::spawn({
                     let proof = proof.clone();
                     let progress_bar = progress_bar.clone();
                     let mut memory = equix::SolverMemory::new();
                     move || {
+                        // Return if core should not be used
+                        if (i.id as u64).ge(&cores) {
+                            return (0, 0, Hash::default());
+                        }
+
+                        // Pin to core
+                        let _ = core_affinity::set_for_current(i);
+
+                        // Start hashing
                         let timer = Instant::now();
-                        let mut nonce = u64::MAX.saturating_div(threads).saturating_mul(i);
+                        let mut nonce = u64::MAX.saturating_div(cores).saturating_mul(i.id as u64);
                         let mut best_nonce = nonce;
                         let mut best_difficulty = 0;
                         let mut best_hash = Hash::default();
                         loop {
                             // Create hash
-                            if let Ok(hx) = hash_with_memory /*drillx::hash_with_memory*/(
+                            if let Ok(hx) = drillx::hash_with_memory(
                                 &mut memory,
                                 &proof.challenge,
                                 &nonce.to_le_bytes(),
@@ -135,11 +146,11 @@ impl Miner {
                             // Exit if time has elapsed
                             if nonce % 100 == 0 {
                                 if timer.elapsed().as_secs().ge(&cutoff_time) {
-                                    if best_difficulty.gt(&min_difficulty) {
+                                    if best_difficulty.ge(&min_difficulty) {
                                         // Mine until min difficulty has been met
                                         break;
                                     }
-                                } else if i == 0 {
+                                } else if i.id == 0 {
                                     progress_bar.set_message(format!(
                                         "Mining... ({} sec remaining)",
                                         cutoff_time.saturating_sub(timer.elapsed().as_secs()),
@@ -179,12 +190,8 @@ impl Miner {
             best_difficulty
         ));
 
-        (
-            Solution::new(best_hash.d, best_nonce.to_le_bytes()),
-            best_difficulty,
-        )
+        (Solution::new(best_hash.d, best_nonce.to_le_bytes()), best_difficulty)
     }
-
     pub fn check_num_cores(&self, threads: u64) {
         // Check num threads
         let num_cores = num_cpus::get() as u64;

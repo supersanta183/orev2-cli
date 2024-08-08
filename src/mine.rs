@@ -30,7 +30,7 @@ impl Miner {
         self.open().await;
 
         // Check num threads
-        self.check_num_cores(args.threads);
+        self.check_num_cores(args.cores);
 
         // Start mining loop
         loop {
@@ -51,7 +51,7 @@ impl Miner {
             let (solution, best_difficulty) = Self::find_hash_par(
                 proof,
                 cutoff_time,
-                args.threads,
+                args.cores,
                 config.min_difficulty as u32,
             )
             .await;

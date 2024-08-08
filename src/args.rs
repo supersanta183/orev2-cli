@@ -62,11 +62,11 @@ pub struct MineArgs {
     #[arg(
         long,
         short,
-        value_name = "THREAD_COUNT",
+        value_name = "CORES_COUNT",
         help = "The number of CPU threads to allocate to mining",
         default_value = "1"
     )]
-    pub threads: u64,
+    pub cores: u64,
 
     #[arg(
         long,
